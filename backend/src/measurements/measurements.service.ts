@@ -12,8 +12,8 @@ import { SaveMeasurementDto } from './dto/save-measurement.dto';
 import axios from 'axios';
 import * as fs from 'fs';
 import FormData = require('form-data');
-interface AiMeasurements {
-  shoulder: number;
+
+export interface AiMeasurements {  shoulder: number;
   bust: number;
   waist: number;
   hip: number;
