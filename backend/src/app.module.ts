@@ -11,13 +11,12 @@ import { MeasurementsModule } from './measurements/measurements.module';
 
     TypeOrmModule.forRoot({
       type: 'postgres',
-      host: process.env.DB_HOST || 'localhost',
-      port: parseInt(process.env.DB_PORT || '5432', 10),
-      username: process.env.DB_USERNAME || 'postgres',
-      password: process.env.DB_PASSWORD || '',
-      database: process.env.DB_NAME || 'ai_measure',
+      url: process.env.DATABASE_URL,
+      ssl: process.env.DATABASE_URL?.includes('neon.tech')
+        ? { rejectUnauthorized: false }
+        : false,
       autoLoadEntities: true,
-      synchronize: true, // auto-creates tables in dev — disable in production
+      synchronize: true,
     }),
 
     ThrottlerModule.forRoot([
