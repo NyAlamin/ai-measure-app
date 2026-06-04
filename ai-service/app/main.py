@@ -1,12 +1,12 @@
 import os
 import logging
-from fastapi import FastAPI, HTTPException
-from app.models import AnalyzeRequest, MeasurementResponse, ErrorResponse
+import tempfile
+from fastapi import FastAPI, HTTPException, UploadFile, File, Form
+from app.models import MeasurementResponse, ErrorResponse
 from app.services.video_processor import VideoProcessor
 from app.services.pose_detector import PoseDetector
 from app.services.measurement_calculator import MeasurementCalculator
 
-# Configure logging
 logging.basicConfig(
     level=logging.INFO,
     format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
@@ -19,7 +19,6 @@ app = FastAPI(
     version="1.0.0",
 )
 
-# Initialize services
 video_processor = VideoProcessor(frame_interval=0.5)
 pose_detector = PoseDetector(min_detection_confidence=0.5)
 measurement_calculator = MeasurementCalculator()
@@ -35,34 +34,30 @@ def health_check():
     response_model=MeasurementResponse,
     responses={400: {"model": ErrorResponse}, 500: {"model": ErrorResponse}},
 )
-def analyze_video(request: AnalyzeRequest):
+async def analyze_video(
+    video: UploadFile = File(...),
+    height: float = Form(...),
+):
     """
     Analyze a body measurement video.
-
-    Pipeline:
-    1. Extract frames from video (every 0.5s)
-    2. Select best frames (evenly spaced for 360° coverage)
-    3. Detect pose landmarks in each frame
-    4. Calculate body height in pixels
-    5. Convert pixel measurements to real measurements using known height
-    6. Return measurements in inches
+    Accepts the video as a file upload + height as form data.
     """
-    video_path = request.videoPath
-    height_cm = request.height
-
-    # Validate file exists
-    if not os.path.exists(video_path):
-        raise HTTPException(
-            status_code=400,
-            detail={"code": "upload_failed", "message": "Video file not found."},
-        )
+    temp_path = None
 
     try:
-        # Step 1: Extract frames
-        logger.info(f"Processing video: {video_path}")
-        all_frames = video_processor.extract_frames(video_path)
+        # Save uploaded video to a temp file
+        suffix = os.path.splitext(video.filename or "video.webm")[1] or ".webm"
+        with tempfile.NamedTemporaryFile(delete=False, suffix=suffix) as tmp:
+            content = await video.read()
+            tmp.write(content)
+            temp_path = tmp.name
 
-        # Step 2: Select best frames for analysis
+        logger.info(f"Processing video: {temp_path}, height: {height}cm")
+
+        # Step 1: Extract frames
+        all_frames = video_processor.extract_frames(temp_path)
+
+        # Step 2: Select best frames
         best_frames = video_processor.get_best_frames(all_frames, count=10)
         logger.info(f"Selected {len(best_frames)} frames for analysis")
 
@@ -78,7 +73,7 @@ def analyze_video(request: AnalyzeRequest):
                 },
             )
 
-        # Step 4: Calculate body height in pixels (use the first good detection)
+        # Step 4: Calculate body height in pixels
         body_height_px = None
         for lm in all_landmarks:
             bh = pose_detector.get_body_height_pixels(lm)
@@ -95,12 +90,12 @@ def analyze_video(request: AnalyzeRequest):
                 },
             )
 
-        logger.info(f"Body height: {body_height_px:.1f}px, Real: {height_cm}cm")
+        logger.info(f"Body height: {body_height_px:.1f}px, Real: {height}cm")
 
         # Step 5: Calculate measurements
         measurements = measurement_calculator.calculate(
             all_landmarks=all_landmarks,
-            height_cm=height_cm,
+            height_cm=height,
             body_height_pixels=body_height_px,
         )
 
@@ -113,7 +108,7 @@ def analyze_video(request: AnalyzeRequest):
                 },
             )
 
-        logger.info(f"Measurements generated successfully")
+        logger.info("Measurements generated successfully")
         return MeasurementResponse(**measurements)
 
     except HTTPException:
@@ -133,6 +128,11 @@ def analyze_video(request: AnalyzeRequest):
                 "message": "An error occurred while analyzing the video.",
             },
         )
+    finally:
+        # Always delete the temp file
+        if temp_path and os.path.exists(temp_path):
+            os.unlink(temp_path)
+            logger.info(f"Deleted temp file: {temp_path}")
 
 
 @app.on_event("shutdown")

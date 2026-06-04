@@ -1,0 +1,18 @@
+\---
+
+title: AI Measure Service
+
+emoji: 📏
+
+colorFrom: purple
+
+colorTo: blue
+
+sdk: docker
+
+app\_port: 7860
+
+pinned: false
+
+\---
+
