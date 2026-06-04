@@ -1,0 +1,22 @@
+# Frontend
+frontend/node_modules/
+frontend/.next/
+frontend/.env.local
+frontend/certificates/
+
+# Backend
+backend/node_modules/
+backend/dist/
+backend/.env
+backend/uploads/temp/*
+!backend/uploads/temp/.gitkeep
+
+# AI Service
+ai-service/venv/
+ai-service/__pycache__/
+ai-service/**/__pycache__/
+ai-service/*.pyc
+
+# General
+.DS_Store
+*.pem
