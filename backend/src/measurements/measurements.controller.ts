@@ -3,11 +3,13 @@ import {
   Post,
   Get,
   Param,
+  Query,
   Body,
   UploadedFile,
   UseInterceptors,
   BadRequestException,
   NotFoundException,
+  UnauthorizedException,
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { diskStorage } from 'multer';
@@ -80,8 +82,15 @@ export class MeasurementsController {
    * GET /measurements
    * List all saved measurement profiles.
    */
-  @Get()
-  async findAll() {
+ @Get()
+  async findAll(@Query('key') key?: string) {
+    const adminKey = process.env.ADMIN_KEY || 'admin123';
+    if (key !== adminKey) {
+      throw new UnauthorizedException({
+        code: 'unauthorized',
+        message: 'Invalid admin key.',
+      });
+    }
     return this.measurementsService.getAllProfiles();
   }
 
