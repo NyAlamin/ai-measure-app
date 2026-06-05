@@ -32,6 +32,10 @@ export class MeasurementsData {
   kameezLength!: number;
   @IsNumber() @Min(0) @Max(1)
   confidence!: number;
+
+  @IsOptional()
+  @IsNumber()
+  bodyHeight?: number;
 }
 
 export class BasicInfoData {
@@ -55,14 +59,14 @@ export class BasicInfoData {
 
 export class SaveMeasurementDto {
   @IsNotEmpty()
-    @IsString()
-    garment!: string;
+  @IsString()
+  garment!: string;
 
   @ValidateNested()
-    @Type(() => BasicInfoData)
-    info!: BasicInfoData;
+  @Type(() => BasicInfoData)
+  info!: BasicInfoData;
 
   @ValidateNested()
-    @Type(() => MeasurementsData)
-    measurements!: MeasurementsData;
+  @Type(() => MeasurementsData)
+  measurements!: MeasurementsData;
 }
