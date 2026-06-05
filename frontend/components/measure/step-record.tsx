@@ -1,8 +1,7 @@
 "use client";
 
 import { useEffect } from "react";
-import { X, RotateCcw, Camera, AlertCircle, Circle } from "lucide-react";
-import { StepLayout, StatusBar } from "./flow-shell";
+import { X, RotateCcw, Camera, AlertCircle, Circle, SwitchCamera } from "lucide-react";import { StepLayout, StatusBar } from "./flow-shell";
 import { SilhouetteOverlay } from "./silhouette-overlay";
 import { Button } from "@/components/ui/button";
 import { useCameraRecorder } from "@/hooks/use-camera-recorder";
@@ -55,31 +54,44 @@ export function StepRecord({ flow }: { flow: MeasurementFlow }) {
         <StatusBar dark />
 
         {/* header */}
-        <header className="flex items-center justify-between px-5 py-3">
+    <header className="flex items-center justify-between px-5 py-3">
           <button
-            onClick={() => {
-              cam.reset();
-              flow.goTo("instructions");
-            }}
-            aria-label="Close"
-            className="grid size-9 place-items-center rounded-full bg-white/10"
-          >
-            <X className="size-5" />
-          </button>
-          <span className="text-sm font-semibold">
-            {cam.status === "recording" ? "Recording" : "Camera Preview"}
-          </span>
-          <span className="size-9" />
-        </header>
+    onClick={() => {
+      cam.reset();
+      flow.goTo("instructions");
+    }}
+    aria-label="Close"
+    className="grid size-9 place-items-center rounded-full bg-white/10"
+  >
+    <X className="size-5" />
+  </button>
+  <span className="text-sm font-semibold">
+    {cam.status === "recording" ? "Recording" : "Camera Preview"}
+  </span>
+  {cam.status === "previewing" ? (
+    <button
+      onClick={cam.switchCamera}
+      aria-label="Switch camera"
+      className="grid size-9 place-items-center rounded-full bg-white/10"
+    >
+      <SwitchCamera className="size-5" />
+    </button>
+  ) : (
+    <span className="size-9" />
+  )}
+</header>
 
         {/* live camera preview */}
         <div className="relative flex-1 overflow-hidden">
           <video
-            ref={cam.videoRef}
-            playsInline
-            muted
-            className="h-full w-full object-cover"
-          />
+              ref={cam.videoRef}
+              playsInline
+              muted
+              className="h-full w-full object-cover"
+              style={{
+                transform: cam.facingMode === "user" ? "scaleX(-1)" : "none",
+             }}
+            />
           <SilhouetteOverlay />
 
           {/* instruction pill */}

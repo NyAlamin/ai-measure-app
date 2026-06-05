@@ -13,6 +13,8 @@ type RecorderStatus =
   | "denied"
   | "unsupported";
 
+type FacingMode = "user" | "environment";
+
 interface UseCameraRecorder {
   videoRef: React.RefObject<HTMLVideoElement | null>;
   status: RecorderStatus;
@@ -21,10 +23,12 @@ interface UseCameraRecorder {
   recordedBlob: Blob | null;
   error: string | null;
   canStop: boolean;
+  facingMode: FacingMode;
   openCamera: () => Promise<void>;
   startRecording: () => void;
   stop: () => void;
   reset: () => void;
+  switchCamera: () => Promise<void>;
 }
 
 export function useCameraRecorder(): UseCameraRecorder {
@@ -40,6 +44,7 @@ export function useCameraRecorder(): UseCameraRecorder {
   const [countdown, setCountdown] = useState(0);
   const [recordedBlob, setRecordedBlob] = useState<Blob | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [facingMode, setFacingMode] = useState<FacingMode>("environment");
 
   const stopStream = useCallback(() => {
     streamRef.current?.getTracks().forEach((t) => t.stop());
@@ -78,63 +83,80 @@ export function useCameraRecorder(): UseCameraRecorder {
       recorderRef.current.stop();
     }
     clearTimer();
-    // camera will be fully disconnected in recorder.onstop
   }, [clearTimer]);
 
-  /** Step 1: Open the camera and show live preview (no recording yet) */
-  const openCamera = useCallback(async () => {
-    setError(null);
-    setRecordedBlob(null);
-    setElapsed(0);
-    setCountdown(0);
+  // open camera with a given facing mode
+  const openCameraWith = useCallback(
+    async (mode: FacingMode) => {
+      setError(null);
+      setRecordedBlob(null);
+      setElapsed(0);
+      setCountdown(0);
 
-    if (
-      typeof window === "undefined" ||
-      !navigator.mediaDevices?.getUserMedia
-    ) {
-      setStatus("unsupported");
-      setError("Camera recording isn't supported in this browser.");
-      return;
-    }
-    if (typeof MediaRecorder === "undefined") {
-      setStatus("unsupported");
-      setError("MediaRecorder isn't supported in this browser.");
-      return;
-    }
-
-    try {
-      setStatus("requesting");
-  const stream = await navigator.mediaDevices.getUserMedia({
-    video: {
-      facingMode: { ideal: "environment" },
-      width: { ideal: 640 },
-      height: { ideal: 480 },
-  },
-      audio: false,
-});
-      streamRef.current = stream;
-      if (videoRef.current) {
-        videoRef.current.srcObject = stream;
-        await videoRef.current.play().catch(() => {});
-      }
-      setStatus("previewing");
-    } catch (err) {
-      stopStream();
-      const name = (err as DOMException)?.name;
-      if (name === "NotAllowedError" || name === "SecurityError") {
-        setStatus("denied");
-        setError("Camera access was denied. Please allow it and try again.");
-      } else if (name === "NotFoundError") {
-        setStatus("denied");
-        setError("No camera was found on this device.");
-      } else {
+      if (
+        typeof window === "undefined" ||
+        !navigator.mediaDevices?.getUserMedia
+      ) {
         setStatus("unsupported");
-        setError("Could not start the camera. Please try again.");
+        setError("Camera recording isn't supported in this browser.");
+        return;
       }
-    }
-  }, [stopStream]);
+      if (typeof MediaRecorder === "undefined") {
+        setStatus("unsupported");
+        setError("MediaRecorder isn't supported in this browser.");
+        return;
+      }
 
-  /** Step 2: 3-second countdown then start recording */
+      // stop any existing stream first
+      stopStream();
+
+      try {
+        setStatus("requesting");
+        const stream = await navigator.mediaDevices.getUserMedia({
+          video: {
+            facingMode: { ideal: mode },
+            width: { ideal: 640 },
+            height: { ideal: 480 },
+          },
+          audio: false,
+        });
+        streamRef.current = stream;
+        if (videoRef.current) {
+          videoRef.current.srcObject = stream;
+          await videoRef.current.play().catch(() => {});
+        }
+        setStatus("previewing");
+      } catch (err) {
+        stopStream();
+        const name = (err as DOMException)?.name;
+        if (name === "NotAllowedError" || name === "SecurityError") {
+          setStatus("denied");
+          setError("Camera access was denied. Please allow it and try again.");
+        } else if (name === "NotFoundError") {
+          setStatus("denied");
+          setError("No camera was found on this device.");
+        } else {
+          setStatus("unsupported");
+          setError("Could not start the camera. Please try again.");
+        }
+      }
+    },
+    [stopStream],
+  );
+
+  const openCamera = useCallback(async () => {
+    await openCameraWith(facingMode);
+  }, [openCameraWith, facingMode]);
+
+  // switch between front and back camera
+  const switchCamera = useCallback(async () => {
+    // only allow switching while previewing (not during recording)
+    if (status === "recording" || status === "countdown") return;
+    const newMode: FacingMode = facingMode === "environment" ? "user" : "environment";
+    setFacingMode(newMode);
+    await openCameraWith(newMode);
+  }, [facingMode, status, openCameraWith]);
+
   const startRecording = useCallback(() => {
     if (!streamRef.current) return;
 
@@ -149,7 +171,6 @@ export function useCameraRecorder(): UseCameraRecorder {
       if (count <= 0) {
         clearCountdown();
 
-        // actually start recording
         const mimeType = pickMimeType();
         const recorder = new MediaRecorder(
           streamRef.current!,
@@ -165,7 +186,6 @@ export function useCameraRecorder(): UseCameraRecorder {
           });
           setRecordedBlob(blob);
           setStatus("stopped");
-          // fully disconnect camera
           stopStream();
         };
         recorderRef.current = recorder;
@@ -223,9 +243,11 @@ export function useCameraRecorder(): UseCameraRecorder {
     recordedBlob,
     error,
     canStop: elapsed >= MIN_RECORD_SECONDS,
+    facingMode,
     openCamera,
     startRecording,
     stop,
     reset,
+    switchCamera,
   };
 }
