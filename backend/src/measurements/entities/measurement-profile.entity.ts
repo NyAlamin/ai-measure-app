@@ -31,6 +31,9 @@ export class MeasurementProfile {
   @Column({ type: 'decimal', precision: 6, scale: 2 })
     shoulder!: number;
 
+  @Column({ type: 'decimal', precision: 6, scale: 2, nullable: true, name: 'user_waist' })
+  userWaist!: number;
+
   @Column({ type: 'decimal', precision: 6, scale: 2 })
     bust!: number;
 

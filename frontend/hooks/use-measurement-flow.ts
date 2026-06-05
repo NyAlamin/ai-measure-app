@@ -56,13 +56,18 @@ export function useMeasurementFlow() {
       await new Promise((r) => setTimeout(r, 1400));
       setState((s) => ({ ...s, step: "processing" }));
       try {
-        const measurements = await scanMeasurements({
-          video,
-          garment: state.garment!,
-          info: state.info!,
-        });
-        setState((s) => ({ ...s, measurements, step: "results" }));
-      } catch (err) {
+  const measurements = await scanMeasurements({
+    video,
+    garment: state.garment!,
+    info: state.info!,
+  });
+  // Use the user-provided waist instead of the auto-measured one
+  const finalMeasurements = {
+    ...measurements,
+    waist: state.info?.waist ?? measurements.waist,
+  };
+  setState((s) => ({ ...s, measurements: finalMeasurements, step: "results" }));
+}  catch (err) {
         const message =
           err instanceof ApiError
             ? err.message

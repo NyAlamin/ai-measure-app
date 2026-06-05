@@ -127,6 +127,7 @@ export class MeasurementsService {
       height: dto.info.height,
       gender: dto.info.gender,
       weight: dto.info.weight,
+      userWaist: dto.info.waist,
       shoulder: dto.measurements.shoulder,
       bust: dto.measurements.bust,
       waist: dto.measurements.waist,

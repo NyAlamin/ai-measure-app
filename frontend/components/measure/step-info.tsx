@@ -20,31 +20,42 @@ const GENDERS: { id: Gender; label: string }[] = [
 
 export function StepInfo({ flow }: { flow: MeasurementFlow }) {
   const [name, setName] = useState(flow.info?.name ?? "");
-const [height, setHeight] = useState(flow.info?.height?.toString() ?? "165");
-const [gender, setGender] = useState<Gender | undefined>(flow.info?.gender);
-const [weight, setWeight] = useState(flow.info?.weight?.toString() ?? "");
-const [touched, setTouched] = useState(false);
+  const [height, setHeight] = useState(flow.info?.height?.toString() ?? "165");
+  const [gender, setGender] = useState<Gender | undefined>(flow.info?.gender);
+  const [weight, setWeight] = useState(flow.info?.weight?.toString() ?? "");
+  const [waist, setWaist] = useState(flow.info?.waist?.toString() ?? "");
+  const [touched, setTouched] = useState(false);
 
-const h = Number(height);
-const nameError = !name.trim() ? "Name is required." : null;
-const heightError =
-  !height || Number.isNaN(h)
-    ? "Height is required."
-    : h < HEIGHT_MIN_CM || h > HEIGHT_MAX_CM
-      ? `Height must be between ${HEIGHT_MIN_CM} and ${HEIGHT_MAX_CM} cm.`
-      : null;
+  const h = Number(height);
+  const w = Number(weight);
+  const ws = Number(waist);
 
-const submit = () => {
-  setTouched(true);
-  if (nameError || heightError) return;
-  flow.setInfo({
-    name: name.trim(),
-    height: h,
-    gender,
-    weight: weight ? Number(weight) : undefined,
-  });
-  flow.goTo("instructions");
-};
+  const nameError = !name.trim() ? "Name is required." : null;
+  const heightError =
+    !height || Number.isNaN(h)
+      ? "Height is required."
+      : h < HEIGHT_MIN_CM || h > HEIGHT_MAX_CM
+        ? `Height must be between ${HEIGHT_MIN_CM} and ${HEIGHT_MAX_CM} cm.`
+        : null;
+  const genderError = !gender ? "Gender is required." : null;
+  const weightError =
+    !weight || Number.isNaN(w) || w <= 0 ? "Weight is required." : null;
+  const waistError =
+    !waist || Number.isNaN(ws) || ws <= 0 ? "Waist is required." : null;
+
+  const submit = () => {
+    setTouched(true);
+    if (nameError || heightError || genderError || weightError || waistError)
+      return;
+    flow.setInfo({
+      name: name.trim(),
+      height: h,
+      gender,
+      weight: w,
+      waist: ws,
+    });
+    flow.goTo("instructions");
+  };
 
   return (
     <StepLayout
@@ -62,29 +73,31 @@ const submit = () => {
       </p>
 
       <div className="space-y-6">
-  <div className="space-y-2">
-    <Label htmlFor="name">
-      Name <span className="text-primary">*</span>
-    </Label>
-    <Input
-      id="name"
-      value={name}
-      placeholder="Enter your name"
-      onChange={(e) => setName(e.target.value)}
-      onBlur={() => setTouched(true)}
-      className={cn(
-        touched && nameError && "border-destructive ring-destructive"
-      )}
-    />
-    {touched && nameError && (
-      <p className="text-xs font-medium text-destructive">{nameError}</p>
-    )}
-  </div>
+        {/* Name */}
+        <div className="space-y-2">
+          <Label htmlFor="name">
+            Name <span className="text-primary">*</span>
+          </Label>
+          <Input
+            id="name"
+            value={name}
+            placeholder="Enter your name"
+            onChange={(e) => setName(e.target.value)}
+            onBlur={() => setTouched(true)}
+            className={cn(
+              touched && nameError && "border-destructive ring-destructive"
+            )}
+          />
+          {touched && nameError && (
+            <p className="text-xs font-medium text-destructive">{nameError}</p>
+          )}
+        </div>
 
-  <div className="space-y-2">
-    <Label htmlFor="height">
-      Height <span className="text-primary">*</span>
-    </Label>
+        {/* Height */}
+        <div className="space-y-2">
+          <Label htmlFor="height">
+            Height <span className="text-primary">*</span>
+          </Label>
           <div className="relative">
             <Input
               id="height"
@@ -101,22 +114,25 @@ const submit = () => {
             </span>
           </div>
           {touched && heightError && (
-            <p className="text-xs font-medium text-destructive">{heightError}</p>
+            <p className="text-xs font-medium text-destructive">
+              {heightError}
+            </p>
           )}
         </div>
 
+        {/* Gender */}
         <div className="space-y-2">
           <Label>
-            Gender{" "}
-            <span className="font-normal text-muted-foreground">(Optional)</span>
+            Gender <span className="text-primary">*</span>
           </Label>
           <div className="grid grid-cols-3 gap-2">
             {GENDERS.map((g) => (
               <button
                 key={g.id}
-                onClick={() =>
-                  setGender((cur) => (cur === g.id ? undefined : g.id))
-                }
+                onClick={() => {
+                  setGender((cur) => (cur === g.id ? undefined : g.id));
+                  setTouched(true);
+                }}
                 className={cn(
                   "h-11 rounded-xl border text-sm font-semibold transition-all",
                   gender === g.id
@@ -128,12 +144,17 @@ const submit = () => {
               </button>
             ))}
           </div>
+          {touched && genderError && (
+            <p className="text-xs font-medium text-destructive">
+              {genderError}
+            </p>
+          )}
         </div>
 
+        {/* Weight */}
         <div className="space-y-2">
           <Label htmlFor="weight">
-            Weight{" "}
-            <span className="font-normal text-muted-foreground">(Optional)</span>
+            Weight <span className="text-primary">*</span>
           </Label>
           <div className="relative">
             <Input
@@ -142,11 +163,48 @@ const submit = () => {
               value={weight}
               placeholder="60"
               onChange={(e) => setWeight(e.target.value)}
+              onBlur={() => setTouched(true)}
+              className={cn(
+                touched && weightError && "border-destructive ring-destructive"
+              )}
             />
             <span className="absolute right-4 top-1/2 -translate-y-1/2 text-sm text-muted-foreground">
               kg
             </span>
           </div>
+          {touched && weightError && (
+            <p className="text-xs font-medium text-destructive">
+              {weightError}
+            </p>
+          )}
+        </div>
+
+        {/* Waist */}
+        <div className="space-y-2">
+          <Label htmlFor="waist">
+            Waist <span className="text-primary">*</span>
+          </Label>
+          <div className="relative">
+            <Input
+              id="waist"
+              inputMode="numeric"
+              value={waist}
+              placeholder="34"
+              onChange={(e) => setWaist(e.target.value)}
+              onBlur={() => setTouched(true)}
+              className={cn(
+                touched && waistError && "border-destructive ring-destructive"
+              )}
+            />
+            <span className="absolute right-4 top-1/2 -translate-y-1/2 text-sm text-muted-foreground">
+              in
+            </span>
+          </div>
+          {touched && waistError && (
+            <p className="text-xs font-medium text-destructive">
+              {waistError}
+            </p>
+          )}
         </div>
 
         <Card className="bg-accent/40">
@@ -155,8 +213,8 @@ const submit = () => {
             <div>
               <p className="text-sm font-semibold">Why we need this?</p>
               <p className="text-xs text-muted-foreground">
-                Height helps our AI calculate accurate measurements for your
-                body.
+                Your height and waist help our AI calculate accurate
+                measurements for your body.
               </p>
             </div>
           </CardContent>

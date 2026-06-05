@@ -4,22 +4,26 @@ import { ChevronLeft, Signal, Wifi, BatteryFull } from "lucide-react";
 import { Progress } from "@/components/ui/progress";
 import { cn } from "@/lib/utils";
 
+// export function StatusBar({ dark = false }: { dark?: boolean }) {
+//   return (
+//     <div
+//       className={cn(
+//         "flex items-center justify-between px-5 pt-3 text-xs font-semibold",
+//         dark ? "text-white" : "text-foreground"
+//       )}
+//     >
+//       <span>9:41</span>
+//       <div className="flex items-center gap-1.5">
+//         <Signal className="size-3.5" />
+//         <Wifi className="size-3.5" />
+//         <BatteryFull className="size-4" />
+//       </div>
+//     </div>
+//   );
+// }
 export function StatusBar({ dark = false }: { dark?: boolean }) {
-  return (
-    <div
-      className={cn(
-        "flex items-center justify-between px-5 pt-3 text-xs font-semibold",
-        dark ? "text-white" : "text-foreground"
-      )}
-    >
-      <span>9:41</span>
-      <div className="flex items-center gap-1.5">
-        <Signal className="size-3.5" />
-        <Wifi className="size-3.5" />
-        <BatteryFull className="size-4" />
-      </div>
-    </div>
-  );
+  void dark;
+  return null;
 }
 
 interface StepLayoutProps {

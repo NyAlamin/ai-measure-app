@@ -14,11 +14,12 @@ export interface Garment {
 
 export type Gender = "female" | "male" | "other";
 
-export interface BasicInfo {
-  name: string;         // required for saving
-  height: number;       // cm, required, 120–220
+  export interface BasicInfo {
+  name: string;
+  height: number;
   gender?: Gender;
-  weight?: number;      // kg, optional
+  weight?: number;
+  waist?: number;
 }
 
 /** All body values in INCHES. Returned by the AI service. */

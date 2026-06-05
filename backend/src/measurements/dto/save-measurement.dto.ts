@@ -48,13 +48,17 @@ export class BasicInfoData {
   @Max(220)
   height!: number;
 
-  @IsOptional()
+  @IsNotEmpty({ message: 'Gender is required.' })
   @IsString()
-  gender?: string;
+  gender!: string;
 
-  @IsOptional()
+  @IsNotEmpty({ message: 'Weight is required.' })
   @IsNumber()
-  weight?: number;
+  weight!: number;
+
+  @IsNotEmpty({ message: 'Waist is required.' })
+  @IsNumber()
+  waist!: number;
 }
 
 export class SaveMeasurementDto {
